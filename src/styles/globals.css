@@ -52,7 +52,7 @@ body {
 
 .canvas-connection-status {
   position: fixed;
-  top: 88px;
+  bottom: 24px;
   left: 50%;
   z-index: 1000;
   display: flex;
@@ -334,7 +334,7 @@ main {
   }
 
   .canvas-connection-status {
-    top: 76px;
+    bottom: 16px;
     max-width: calc(100vw - 16px);
     font-size: 13px;
   }
