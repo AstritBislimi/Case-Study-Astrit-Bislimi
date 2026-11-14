@@ -52,7 +52,7 @@ body {
 
 .canvas-connection-status {
   position: fixed;
-  top: 16px;
+  top: 88px;
   left: 50%;
   z-index: 1000;
   display: flex;
@@ -120,7 +120,7 @@ body {
 .canvas-zoom-controls {
   position: absolute;
   left: 24px;
-  bottom: 24px;
+  top: 24px;
   z-index: 20;
   display: flex;
   align-items: center;
@@ -136,7 +136,7 @@ body {
 .canvas-place-comment-control {
   position: absolute;
   right: 24px;
-  bottom: 24px;
+  top: 24px;
   z-index: 20;
 }
 
@@ -145,6 +145,7 @@ body {
   width: 52px;
   height: 52px;
   place-items: center;
+  padding: 0;
   border: 1px solid rgb(0 0 0 / 10%);
   border-radius: 12px;
   background: #fff;
@@ -154,6 +155,10 @@ body {
   font: inherit;
   font-size: 30px;
   line-height: 1;
+}
+
+.canvas-place-comment-button span {
+  transform: translateY(-2px);
 }
 
 .canvas-place-comment-button:hover {
@@ -315,7 +320,7 @@ main {
 @media (max-width: 600px) {
   .canvas-zoom-controls,
   .canvas-place-comment-control {
-    bottom: 16px;
+    top: 16px;
   }
 
   .canvas-zoom-controls {
@@ -329,7 +334,7 @@ main {
   }
 
   .canvas-connection-status {
-    top: 8px;
+    top: 76px;
     max-width: calc(100vw - 16px);
     font-size: 13px;
   }

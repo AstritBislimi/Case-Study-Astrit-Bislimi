@@ -130,7 +130,7 @@ export function PlaceThreadButton() {
           }}
           style={{ cursor: state === "placing" ? "none" : undefined }}
         >
-          +
+          <span aria-hidden="true">+</span>
         </button>
       </div>
 
