@@ -77,7 +77,7 @@ describe("PlaceThreadButton", () => {
   it("places a normalized comment and opens it inward near the image's right edge", () => {
     const { container } = renderPlacer();
     fireEvent.click(screen.getByRole("button", { name: "Place comment" }));
-    placeAt(836, 326);
+    placeAt(836, 588.5);
 
     expect(mocks.floatingComposer).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -88,7 +88,7 @@ describe("PlaceThreadButton", () => {
     expect(
       container.querySelector<HTMLButtonElement>(".lb-comment-pin")?.style
         .transform
-    ).toBe("translate(836px, 326px)");
+    ).toBe("translate(836px, 588.5px)");
   });
 
   it("does not place a comment after a drag or outside the image", () => {

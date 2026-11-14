@@ -117,8 +117,9 @@ export function PlaceThreadButton() {
   return (
     <>
       {/* Allows you to place floating composers */}
-      <div style={{ position: "absolute", top: 12, right: 12 }}>
+      <div className="canvas-place-comment-control">
         <button
+          className="canvas-place-comment-button"
           type="button"
           aria-label="Place comment"
           disabled={!canComment}
@@ -127,15 +128,7 @@ export function PlaceThreadButton() {
               setState("placing");
             }
           }}
-          style={{
-            cursor: state === "placing" ? "none" : undefined,
-            background: "#ffffff",
-            border: "1px solid #00000030",
-            borderRadius: 8,
-            width: 36,
-            height: 36,
-            fontSize: 24,
-          }}
+          style={{ cursor: state === "placing" ? "none" : undefined }}
         >
           +
         </button>

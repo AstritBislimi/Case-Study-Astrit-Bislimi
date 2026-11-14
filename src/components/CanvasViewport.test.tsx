@@ -18,6 +18,12 @@ describe("CanvasViewport wheel zoom", () => {
         <CanvasViewport />
       </CanvasProvider>
     );
+    const initialImageTransform = container
+      .querySelector<HTMLElement>(".canvas-image")
+      ?.style.transform;
+    const initialZoom = Number(
+      initialImageTransform?.match(/scale\(([^)]+)\)/)?.[1]
+    );
     const canvas = screen.getByRole("region", { name: "Image canvas" });
     const wheelEvent = createEvent.wheel(canvas, {
       deltaY: -100,
@@ -31,18 +37,28 @@ describe("CanvasViewport wheel zoom", () => {
     fireEvent(canvas, wheelEvent);
 
     expect(wheelEvent.defaultPrevented).toBe(true);
-    expect(screen.getByText("110%")).toBeInTheDocument();
     expect(
-      container.querySelector(".canvas-image")?.getAttribute("style")
-    ).toContain("scale(1.1)");
+      screen.getByText(`${Math.round(initialZoom * 1.1 * 100)}%`)
+    ).toBeInTheDocument();
+    const zoomedImageTransform = container
+      .querySelector<HTMLElement>(".canvas-image")
+      ?.style.transform;
+    const zoomedValue = Number(
+      zoomedImageTransform?.match(/scale\(([^)]+)\)/)?.[1]
+    );
+    expect(zoomedValue).toBeCloseTo(initialZoom * 1.1);
   });
 
   it("leaves ordinary wheel events alone", () => {
-    render(
+    const { container } = render(
       <CanvasProvider>
         <CanvasViewport />
       </CanvasProvider>
     );
+    const initialImageTransform = container
+      .querySelector<HTMLElement>(".canvas-image")
+      ?.style.transform;
+    const initialZoomLabel = screen.getByText(/\d+%/).textContent;
     const canvas = screen.getByRole("region", { name: "Image canvas" });
     const wheelEvent = createEvent.wheel(canvas, {
       deltaY: 100,
@@ -55,7 +71,10 @@ describe("CanvasViewport wheel zoom", () => {
     fireEvent(canvas, wheelEvent);
 
     expect(wheelEvent.defaultPrevented).toBe(false);
-    expect(screen.getByText("100%")).toBeInTheDocument();
+    expect(screen.getByText(initialZoomLabel ?? "")).toBeInTheDocument();
+    expect(
+      container.querySelector<HTMLElement>(".canvas-image")?.style.transform
+    ).toBe(initialImageTransform);
   });
 
   it("shows a fallback and removes commenting controls when the image fails", () => {

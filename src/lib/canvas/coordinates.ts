@@ -14,6 +14,39 @@ export type ImageSize = {
   height: number;
 };
 
+export function fitImageToViewport(
+  viewportSize: ImageSize,
+  imageSize: ImageSize,
+  padding = 24
+): Viewport {
+  if (
+    viewportSize.width <= 0 ||
+    viewportSize.height <= 0 ||
+    imageSize.width <= 0 ||
+    imageSize.height <= 0
+  ) {
+    return { x: 0, y: 0, zoom: 1 };
+  }
+
+  const availableWidth = Math.max(0, viewportSize.width - padding * 2);
+  const availableHeight = Math.max(0, viewportSize.height - padding * 2);
+  const zoom = clampZoom(
+    Math.min(
+      1,
+      availableWidth / imageSize.width,
+      availableHeight / imageSize.height
+    ),
+    0.25,
+    1
+  );
+
+  return {
+    x: (viewportSize.width - imageSize.width * zoom) / 2,
+    y: (viewportSize.height - imageSize.height * zoom) / 2,
+    zoom,
+  };
+}
+
 export function isImagePoint(point: Point): boolean {
   return (
     Number.isFinite(point.x) &&
@@ -90,7 +123,7 @@ export function zoomAtPoint(
   };
 }
 
-export function clampZoom(zoom: number, minZoom = 0.5, maxZoom = 3): number {
+export function clampZoom(zoom: number, minZoom = 0.25, maxZoom = 3): number {
   return Math.min(Math.max(zoom, minZoom), maxZoom);
 }
 

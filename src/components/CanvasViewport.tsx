@@ -13,7 +13,7 @@ import { useCanvasActions, useCanvasViewport } from "./CanvasProvider";
 import { CANVAS_IMAGE_SIZE } from "../lib/canvas/constants";
 
 const IMAGE_URL =
-  "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&h=800&q=85";
+  "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&h=1125&q=85";
 
 function CanvasImageLayer({ onError }: { onError: () => void }) {
   const viewport = useCanvasViewport();
@@ -108,7 +108,7 @@ export function CanvasViewport({ children }: PropsWithChildren) {
     x: number;
     y: number;
   } | null>(null);
-  const { panBy, zoomByAtPoint } = useCanvasActions();
+  const { panBy, fitToViewport, zoomByAtPoint } = useCanvasActions();
 
   const getCanvasCenter = useCallback(() => {
     const bounds = canvasRef.current?.getBoundingClientRect();
@@ -116,6 +116,31 @@ export function CanvasViewport({ children }: PropsWithChildren) {
       ? { x: bounds.width / 2, y: bounds.height / 2 }
       : { x: 0, y: 0 };
   }, []);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) {
+      return;
+    }
+
+    const fitCanvas = () => {
+      const bounds = canvas.getBoundingClientRect();
+      fitToViewport(
+        {
+          width: bounds.width || window.innerWidth,
+          height: bounds.height || window.innerHeight,
+        },
+        CANVAS_IMAGE_SIZE
+      );
+    };
+
+    fitCanvas();
+    window.addEventListener("resize", fitCanvas);
+
+    return () => {
+      window.removeEventListener("resize", fitCanvas);
+    };
+  }, [fitToViewport]);
 
   const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
     const target = event.target;

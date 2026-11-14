@@ -47,4 +47,35 @@ describe("useViewport", () => {
 
     expect(result.current.viewport).toEqual({ x: 20, y: 30, zoom: 1 });
   });
+
+  it("fits the image until the user pans or zooms", () => {
+    const { result } = renderHook(() =>
+      useViewport({ x: 36, y: 26, zoom: 1 })
+    );
+
+    act(() =>
+      result.current.fitToViewport(
+        { width: 1024, height: 768 },
+        { width: 900, height: 1125 }
+      )
+    );
+
+    expect(result.current.viewport).toEqual({
+      x: 224,
+      y: 24,
+      zoom: 0.64,
+    });
+
+    act(() => result.current.panBy({ x: 10, y: 0 }));
+    const pannedViewport = result.current.viewport;
+
+    act(() =>
+      result.current.fitToViewport(
+        { width: 390, height: 844 },
+        { width: 900, height: 1125 }
+      )
+    );
+
+    expect(result.current.viewport).toEqual(pannedViewport);
+  });
 });

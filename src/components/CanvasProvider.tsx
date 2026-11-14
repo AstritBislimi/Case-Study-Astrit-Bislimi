@@ -11,11 +11,19 @@ const CanvasViewportContext = createContext<Viewport | null>(null);
 const CanvasActionsContext = createContext<ViewportActions | null>(null);
 
 export function CanvasProvider({ children }: PropsWithChildren) {
-  const { viewport, panBy, zoomAt, zoomByAtPoint, zoomIn, zoomOut } =
+  const {
+    viewport,
+    panBy,
+    fitToViewport,
+    zoomAt,
+    zoomByAtPoint,
+    zoomIn,
+    zoomOut,
+  } =
     useViewport(INITIAL_CANVAS_VIEWPORT);
   const actions = useMemo(
-    () => ({ panBy, zoomAt, zoomByAtPoint, zoomIn, zoomOut }),
-    [panBy, zoomAt, zoomByAtPoint, zoomIn, zoomOut]
+    () => ({ panBy, fitToViewport, zoomAt, zoomByAtPoint, zoomIn, zoomOut }),
+    [panBy, fitToViewport, zoomAt, zoomByAtPoint, zoomIn, zoomOut]
   );
 
   return (

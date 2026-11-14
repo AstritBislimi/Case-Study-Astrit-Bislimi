@@ -1,13 +1,18 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
-import { clampZoom, zoomAtPoint as calculateZoomAtPoint } from "../lib/canvas/coordinates";
-import type { Point, Viewport } from "../lib/canvas/coordinates";
+import { useCallback, useMemo, useRef, useState } from "react";
+import {
+  clampZoom,
+  fitImageToViewport,
+  zoomAtPoint as calculateZoomAtPoint,
+} from "../lib/canvas/coordinates";
+import type { ImageSize, Point, Viewport } from "../lib/canvas/coordinates";
 
 const ZOOM_FACTOR = 1.2;
 
 export type ViewportActions = {
   panBy: (delta: Point) => void;
+  fitToViewport: (viewportSize: ImageSize, imageSize: ImageSize) => void;
   zoomAt: (screenPoint: Point, zoom: number) => void;
   zoomByAtPoint: (screenPoint: Point, factor: number) => void;
   zoomIn: (screenPoint: Point) => void;
@@ -22,8 +27,10 @@ export function useViewport(
   initialViewport: Viewport = { x: 0, y: 0, zoom: 1 }
 ): ViewportControls {
   const [viewport, setViewport] = useState(initialViewport);
+  const hasInteracted = useRef(false);
 
   const panBy = useCallback((delta: Point) => {
+    hasInteracted.current = true;
     setViewport((current) => ({
       ...current,
       x: current.x + delta.x,
@@ -31,7 +38,17 @@ export function useViewport(
     }));
   }, []);
 
+  const fitToViewport = useCallback(
+    (viewportSize: ImageSize, imageSize: ImageSize) => {
+      if (!hasInteracted.current) {
+        setViewport(fitImageToViewport(viewportSize, imageSize));
+      }
+    },
+    []
+  );
+
   const zoomAt = useCallback((screenPoint: Point, zoom: number) => {
+    hasInteracted.current = true;
     setViewport((current) =>
       calculateZoomAtPoint(current, screenPoint, clampZoom(zoom))
     );
@@ -39,6 +56,7 @@ export function useViewport(
 
   const zoomByAtPoint = useCallback(
     (screenPoint: Point, factor: number) => {
+      hasInteracted.current = true;
       setViewport((current) =>
         calculateZoomAtPoint(
           current,
@@ -59,7 +77,15 @@ export function useViewport(
   }, [zoomByAtPoint]);
 
   return useMemo(
-    () => ({ viewport, panBy, zoomAt, zoomByAtPoint, zoomIn, zoomOut }),
-    [viewport, panBy, zoomAt, zoomByAtPoint, zoomIn, zoomOut]
+    () => ({
+      viewport,
+      panBy,
+      fitToViewport,
+      zoomAt,
+      zoomByAtPoint,
+      zoomIn,
+      zoomOut,
+    }),
+    [viewport, panBy, fitToViewport, zoomAt, zoomByAtPoint, zoomIn, zoomOut]
   );
 }

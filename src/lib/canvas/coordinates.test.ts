@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   clampZoom,
+  fitImageToViewport,
   getThreadSide,
   imagePointToPixels,
   imageToScreen,
@@ -19,6 +20,30 @@ describe("screenToImage and imageToScreen", () => {
     expect(screenToImage({ x: 500, y: 250 }, viewport, imageSize)).toEqual({
       x: 0.5,
       y: 0.5,
+    });
+  });
+
+  describe("fitImageToViewport", () => {
+    it("fits and centers the image without enlarging it", () => {
+      const viewport = fitImageToViewport(
+        { width: 1024, height: 920 },
+        { width: 900, height: 1125 }
+      );
+
+      expect(viewport.zoom).toBeCloseTo(872 / 1125);
+      expect(viewport.x).toBeCloseTo((1024 - 900 * viewport.zoom) / 2);
+      expect(viewport.y).toBeCloseTo(24);
+    });
+
+    it("fits the image to a narrow viewport", () => {
+      const viewport = fitImageToViewport(
+        { width: 390, height: 844 },
+        { width: 900, height: 1125 }
+      );
+
+      expect(viewport.zoom).toBeCloseTo(342 / 900);
+      expect(viewport.x).toBeCloseTo(24);
+      expect(viewport.y).toBeCloseTo((844 - 1125 * viewport.zoom) / 2);
     });
   });
 
@@ -92,7 +117,7 @@ describe("zoomAtPoint", () => {
 
 describe("clampZoom", () => {
   it("clamps zoom below and above the allowed range", () => {
-    expect(clampZoom(0.1)).toBe(0.5);
+    expect(clampZoom(0.1)).toBe(0.25);
     expect(clampZoom(4)).toBe(3);
   });
 
