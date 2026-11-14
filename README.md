@@ -104,8 +104,12 @@ Tests use Vitest and React Testing Library.
   Liveblocks example, implementing and refining the canvas code, writing
   focused tests, and reviewing code.
 - Things the AI got wrong or I changed:
-  - An early pin-drag approach caused unnecessary rerenders; after review, drag
-    state was localized to the active pin.
+  - The Liveblocks template moves pins with dnd-kit, and the AI's first
+    pin-drag implementation built on it. That caused unnecessary rerenders
+    because of how dnd-kit structures drag state, and a full drag-and-drop
+    library was overkill for a simple pointer drag. I removed the dependency
+    and replaced it with plain pointer handlers, with drag state localized to
+    the active pin.
   - The connection banner initially missed the `connecting` state, and an open
     thread was initially closed during reconnects. Both were corrected so users
     get a status message and can keep reading existing threads.
