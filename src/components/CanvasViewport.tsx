@@ -5,8 +5,8 @@ import {
   PointerEvent,
   PropsWithChildren,
   useCallback,
+  useEffect,
   useRef,
-  WheelEvent,
 } from "react";
 import { useCanvasActions, useCanvasViewport } from "./CanvasProvider";
 import { CANVAS_IMAGE_SIZE } from "../lib/canvas/constants";
@@ -131,24 +131,30 @@ export function CanvasViewport({ children }: PropsWithChildren) {
     }
   };
 
-  const handleWheel = (event: WheelEvent<HTMLDivElement>) => {
-    if (!event.ctrlKey && !event.metaKey) {
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) {
       return;
     }
 
-    event.preventDefault();
-    const bounds = canvasRef.current?.getBoundingClientRect();
-    if (!bounds) {
-      return;
-    }
+    const handleWheel = (event: WheelEvent) => {
+      if (!event.ctrlKey && !event.metaKey) {
+        return;
+      }
 
-    const point = {
-      x: event.clientX - bounds.left,
-      y: event.clientY - bounds.top,
+      event.preventDefault();
+      const bounds = canvas.getBoundingClientRect();
+      const point = {
+        x: event.clientX - bounds.left,
+        y: event.clientY - bounds.top,
+      };
+      const factor = event.deltaY < 0 ? 1.1 : 1 / 1.1;
+      zoomByAtPoint(point, factor);
     };
-    const factor = event.deltaY < 0 ? 1.1 : 1 / 1.1;
-    zoomByAtPoint(point, factor);
-  };
+
+    canvas.addEventListener("wheel", handleWheel, { passive: false });
+    return () => canvas.removeEventListener("wheel", handleWheel);
+  }, [zoomByAtPoint]);
 
   return (
     <div
@@ -160,7 +166,6 @@ export function CanvasViewport({ children }: PropsWithChildren) {
       onPointerMove={handlePointerMove}
       onPointerUp={finishPan}
       onPointerCancel={finishPan}
-      onWheel={handleWheel}
     >
       <CanvasImageLayer />
       <CanvasOverlayLayer>{children}</CanvasOverlayLayer>

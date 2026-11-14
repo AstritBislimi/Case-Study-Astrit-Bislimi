@@ -6,7 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { FloatingThread, CommentPin } from "@liveblocks/react-ui";
+import { CommentPin } from "@liveblocks/react-ui";
 import type { ThreadData } from "@liveblocks/client";
 import {
   imagePointToPixels,
@@ -16,6 +16,7 @@ import {
 import type { Point } from "../lib/canvas/coordinates";
 import { CANVAS_IMAGE_SIZE } from "../lib/canvas/constants";
 import { useMaxZIndex } from "../hooks";
+import { ThreadPopover } from "./ThreadPopover";
 
 const DRAG_THRESHOLD = 3;
 
@@ -145,12 +146,13 @@ export const DraggableThread = memo(function DraggableThread({
   };
 
   return (
-    <FloatingThread
+    <ThreadPopover
+      mode="thread"
       thread={thread}
+      imageX={imageX}
       open={isOpen}
       onOpenChange={setIsOpen}
       defaultOpen={defaultOpen}
-      side="right"
       style={{ pointerEvents: dragDelta ? "none" : "auto" }}
     >
       <div
@@ -174,6 +176,6 @@ export const DraggableThread = memo(function DraggableThread({
           onClickCapture={handleClickCapture}
         />
       </div>
-    </FloatingThread>
+    </ThreadPopover>
   );
 });

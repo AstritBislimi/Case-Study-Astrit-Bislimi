@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
-import { CommentPin, FloatingComposer } from "@liveblocks/react-ui";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { MouseEvent as ReactMouseEvent, PointerEvent } from "react";
+import { CommentPin } from "@liveblocks/react-ui";
 import { useSelf } from "@liveblocks/react";
 import { useMaxZIndex } from "../hooks";
 import {
@@ -9,6 +10,9 @@ import {
 } from "../lib/canvas/coordinates";
 import { CANVAS_IMAGE_SIZE } from "../lib/canvas/constants";
 import { useCanvasViewport } from "./CanvasProvider";
+import { ThreadPopover } from "./ThreadPopover";
+
+const PLACEMENT_DRAG_THRESHOLD = 3;
 
 export function PlaceThreadButton() {
   const [state, setState] = useState<"initial" | "placing" | "placed">(
@@ -16,17 +20,90 @@ export function PlaceThreadButton() {
   );
   const [coords, setCoords] = useState({ x: 0, y: 0 });
   const viewport = useCanvasViewport();
+  const placementPointer = useRef<{
+    id: number;
+    x: number;
+    y: number;
+  } | null>(null);
+  const shouldPlaceOnClick = useRef(false);
 
   const reset = useCallback(() => {
     setState("initial");
     setCoords({ x: 0, y: 0 });
+    placementPointer.current = null;
+    shouldPlaceOnClick.current = false;
   }, []);
+
+  useEffect(() => {
+    if (state === "initial") {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        reset();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [reset, state]);
+
+  const handlePlacementPointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0 || !event.isPrimary) {
+      return;
+    }
+
+    placementPointer.current = {
+      id: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+    };
+  };
+
+  const handlePlacementPointerUp = (event: PointerEvent<HTMLDivElement>) => {
+    const pointer = placementPointer.current;
+    if (!pointer || pointer.id !== event.pointerId) {
+      return;
+    }
+    placementPointer.current = null;
+
+    const movement = Math.hypot(
+      event.clientX - pointer.x,
+      event.clientY - pointer.y
+    );
+    shouldPlaceOnClick.current = movement < PLACEMENT_DRAG_THRESHOLD;
+  };
+
+  const handlePlacementClick = (event: ReactMouseEvent<HTMLDivElement>) => {
+    if (!shouldPlaceOnClick.current) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+    shouldPlaceOnClick.current = false;
+
+    const imagePoint = screenToImage(
+      { x: event.clientX, y: event.clientY },
+      viewport,
+      CANVAS_IMAGE_SIZE
+    );
+    if (!isImagePoint(imagePoint)) {
+      reset();
+      return;
+    }
+
+    setCoords(imagePoint);
+    setState("placed");
+  };
 
   return (
     <>
       {/* Allows you to place floating composers */}
       <div style={{ position: "absolute", top: 12, right: 12 }}>
         <button
+          type="button"
+          aria-label="Place comment"
           onClick={() => setState("placing")}
           style={{
             cursor: state === "placing" ? "none" : undefined,
@@ -64,6 +141,8 @@ export function PlaceThreadButton() {
       {/* The visible cursor when you're placing */}
       {state === "placing" ? (
         <div
+          className="canvas-comment-placement"
+          data-testid="comment-placement-layer"
           style={{
             position: "absolute",
             top: 0,
@@ -72,19 +151,13 @@ export function PlaceThreadButton() {
             bottom: 0,
             cursor: "none",
           }}
-          onClick={(e) => {
-            const imagePoint = screenToImage(
-              { x: e.clientX, y: e.clientY },
-              viewport,
-              CANVAS_IMAGE_SIZE
-            );
-            if (!isImagePoint(imagePoint)) {
-              return;
-            }
-
-            setCoords(imagePoint);
-            setState("placed");
+          onPointerDown={handlePlacementPointerDown}
+          onPointerUp={handlePlacementPointerUp}
+          onPointerCancel={() => {
+            placementPointer.current = null;
+            shouldPlaceOnClick.current = false;
           }}
+          onClick={handlePlacementClick}
           onContextMenu={(e) => {
             e.preventDefault();
             reset();
@@ -96,7 +169,7 @@ export function PlaceThreadButton() {
 
       {/* When cursor placed, show a composer on the canvas */}
       {state === "placed" ? (
-        <ThreadComposer coords={coords} onSubmit={() => setState("initial")} />
+        <ThreadComposer coords={coords} onClose={reset} />
       ) : null}
     </>
   );
@@ -104,10 +177,10 @@ export function PlaceThreadButton() {
 
 function ThreadComposer({
   coords,
-  onSubmit,
+  onClose,
 }: {
   coords: { x: number; y: number };
-  onSubmit: () => void;
+  onClose: () => void;
 }) {
   // Get the current user
   const creatorId = useSelf((me) => me.id);
@@ -117,14 +190,21 @@ function ThreadComposer({
   const screenPosition = imageToScreen(coords, viewport, CANVAS_IMAGE_SIZE);
 
   return (
-    <FloatingComposer
+    <ThreadPopover
+      mode="composer"
+      imageX={coords.x}
       defaultOpen={true}
       metadata={{
         x: coords.x,
         y: coords.y,
         zIndex: maxZIndex + 1,
       }}
-      onComposerSubmit={onSubmit}
+      onComposerSubmit={onClose}
+      onOpenChange={(open) => {
+        if (!open) {
+          onClose();
+        }
+      }}
     >
       <CommentPin
         userId={creatorId ?? undefined}
@@ -136,7 +216,7 @@ function ThreadComposer({
           transform: `translate(${screenPosition.x}px, ${screenPosition.y}px)`,
         }}
       />
-    </FloatingComposer>
+    </ThreadPopover>
   );
 }
 
@@ -167,6 +247,8 @@ function NewThreadCursor() {
   return (
     <CommentPin
       corner="top-left"
+      aria-hidden="true"
+      tabIndex={-1}
       style={{
         cursor: "none",
         position: "fixed",
@@ -174,6 +256,7 @@ function NewThreadCursor() {
         left: 0,
         transform: `translate(${coords.x}px, ${coords.y}px)`,
         zIndex: 99999999999,
+        pointerEvents: "none",
       }}
     />
   );

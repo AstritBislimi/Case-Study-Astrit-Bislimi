@@ -1,7 +1,7 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type { ThreadData } from "@liveblocks/client";
 import type { ComponentProps, CSSProperties, PropsWithChildren } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DraggableThread } from "./DraggableThread";
 
 const mocks = vi.hoisted(() => ({
@@ -12,8 +12,9 @@ vi.mock("@liveblocks/react-ui", () => ({
   FloatingThread: ({
     children,
     style,
-  }: PropsWithChildren<{ style?: CSSProperties }>) => {
-    mocks.floatingThreadRender();
+    side,
+  }: PropsWithChildren<{ style?: CSSProperties; side?: string }>) => {
+    mocks.floatingThreadRender(side);
     return <div style={style}>{children}</div>;
   },
   CommentPin: ({
@@ -46,6 +47,8 @@ function createThread(id: string): ThreadData {
 }
 
 describe("DraggableThread", () => {
+  afterEach(cleanup);
+
   beforeEach(() => {
     mocks.floatingThreadRender.mockClear();
   });
@@ -108,5 +111,57 @@ describe("DraggableThread", () => {
       y: 0.5,
     });
     expect(mocks.floatingThreadRender).toHaveBeenCalledTimes(4);
+  });
+
+  it("opens a thread toward the image center near its right edge", () => {
+    render(
+      <DraggableThread
+        thread={createThread("right-edge")}
+        imageX={0.9}
+        imageY={0.5}
+        getZoom={() => 1}
+        onDragEnd={vi.fn()}
+      />
+    );
+
+    expect(mocks.floatingThreadRender).toHaveBeenCalledWith("left");
+  });
+
+  it("does not treat movement below the threshold as a drag", () => {
+    const onDragEnd = vi.fn();
+    render(
+      <DraggableThread
+        thread={createThread("click")}
+        imageX={0.25}
+        imageY={0.5}
+        getZoom={() => 1}
+        onDragEnd={onDragEnd}
+      />
+    );
+
+    const pin = screen.getByRole("button", { name: "Pin" });
+    Object.defineProperty(pin, "setPointerCapture", { value: vi.fn() });
+    Object.defineProperty(pin, "hasPointerCapture", { value: () => true });
+    Object.defineProperty(pin, "releasePointerCapture", { value: vi.fn() });
+
+    fireEvent.pointerDown(pin, {
+      pointerId: 2,
+      isPrimary: true,
+      button: 0,
+      clientX: 10,
+      clientY: 20,
+    });
+    fireEvent.pointerMove(pin, {
+      pointerId: 2,
+      clientX: 12,
+      clientY: 20,
+    });
+    fireEvent.pointerUp(pin, {
+      pointerId: 2,
+      clientX: 12,
+      clientY: 20,
+    });
+
+    expect(onDragEnd).not.toHaveBeenCalled();
   });
 });
