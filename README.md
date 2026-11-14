@@ -61,19 +61,49 @@ Tests use Vitest and React Testing Library.
 - `src/lib/canvas/coordinates.ts` contains the pure coordinate, zoom, and fit
   helpers. Pin metadata uses normalized `{ x, y }` values, so it remains
   anchored when the viewport changes.
-- `ThreadLayer`, `DraggableThread`, `PlaceThreadButton`, and `ThreadPopover`
+- `ThreadLayer`, `DraggableThread`, `ThreadPlacement`, and `ThreadPopover`
   separate pin rendering, movement, placement, and thread/composer display.
+- `useThreadPlacement` owns the click-to-comment flow. A direct click on the
+  image and the "+" button both end in `placeAtImagePoint`, which ignores
+  points outside the image and opens the composer at the chosen spot. Escape
+  cancels placement.
 - `useCanComment` allows comment composition only while connected. During
   reconnecting, existing threads remain viewable, but adding comments and
   moving pins are unavailable.
+- A thread card opens to the left when its pin is at 65% of the image width or
+  further right, otherwise to the right. The rule uses the pin's image
+  position, so pins don't need to re-render while the canvas pans; the
+  trade-off is that at extreme zoom a card can still run off the window.
+
+## Error handling
+
+- **Connection lost:** a banner shows "Connecting…" or "Reconnecting…", and
+  "Couldn’t load comments" with a Retry button once disconnected. If loading
+  threads fails, an error card with Retry replaces the canvas.
+- **Commenting while reconnecting:** disabled. Existing threads stay readable,
+  but new comments and pin moves are unavailable until connected.
+- **Image fails to load:** a fallback message is shown and commenting is
+  disabled.
+- **Empty or whitespace-only comment:** blocked; the Liveblocks composer keeps
+  its submit button disabled.
+- **Click outside the image:** does nothing.
+- **Drag:** never creates a comment. Pointer movement of 3 px or more counts as
+  a drag, both for panning the image and for moving a pin.
+
+## Optional features
+
+- **Responsive:** the image is fitted to the viewport on load and on window
+  resize (until you pan or zoom yourself).
+- **Editing comments:** available through the Liveblocks `FloatingThread`
+  comment menu.
 
 ## AI usage
 
-- **Copilot SDK in VS Code** helped explore the example, implement and refine the
-  canvas, and write focused tests and documentation.
-- **PowerShell and npm** were used to run Vitest, TypeScript checks, and
-  production builds. The local browser was used to review the canvas layout.
-- AI suggestions needed review and correction:
+- **Claude** was used throughout: planning the architecture, writing the build
+  prompts for each step, drafting the initial `CLAUDE.md`, exploring the
+  Liveblocks example, implementing and refining the canvas code, writing
+  focused tests, and reviewing code.
+- Things the AI got wrong or I changed:
   - An early pin-drag approach caused unnecessary rerenders; after review, drag
     state was localized to the active pin.
   - The connection banner initially missed the `connecting` state, and an open
@@ -81,3 +111,10 @@ Tests use Vitest and React Testing Library.
     get a status message and can keep reading existing threads.
   - A `ResizeObserver` was added defensively even though the canvas fills the
     viewport; it was removed in favor of the window resize listener.
+  - The plan specified a compound `ThreadPopover` (Root / Anchor / Content) and
+    a screen-based flip rule. Both were simplified: a `mode` prop on one
+    component, and an image-space flip so pins don't re-render on every pan
+    frame.
+  - The first click-to-comment implementation passed the click around as state
+    and reacted to it in an effect. I replaced it with a direct
+    `placeAtImagePoint` call through `useThreadPlacement`.

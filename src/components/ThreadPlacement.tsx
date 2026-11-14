@@ -17,7 +17,7 @@ import type { ThreadPlacementState } from "../hooks/useThreadPlacement";
 import { useCanvasViewport } from "./CanvasProvider";
 import { ThreadPopover } from "./ThreadPopover";
 
-type PlaceThreadButtonProps = {
+type ThreadPlacementProps = {
   state: ThreadPlacementState;
   coords: Point;
   canComment: boolean;
@@ -26,14 +26,14 @@ type PlaceThreadButtonProps = {
   reset: () => void;
 };
 
-export function PlaceThreadButton({
+export function ThreadPlacement({
   state,
   coords,
   canComment,
   startPlacing,
   placeAtImagePoint,
   reset,
-}: PlaceThreadButtonProps) {
+}: ThreadPlacementProps) {
   const viewport = useCanvasViewport();
   const placementPointer = useRef<{
     id: number;

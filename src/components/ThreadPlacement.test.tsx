@@ -2,7 +2,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type { ComponentProps, PropsWithChildren } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CanvasProvider } from "./CanvasProvider";
-import { PlaceThreadButton } from "./PlaceThreadButton";
+import { ThreadPlacement } from "./ThreadPlacement";
 
 const mocks = vi.hoisted(() => ({
   floatingComposer: vi.fn(),
@@ -37,9 +37,9 @@ vi.mock("../hooks", () => ({
 }));
 
 function renderPlacer(
-  overrides: Partial<ComponentProps<typeof PlaceThreadButton>> = {}
+  overrides: Partial<ComponentProps<typeof ThreadPlacement>> = {}
 ) {
-  const props: ComponentProps<typeof PlaceThreadButton> = {
+  const props: ComponentProps<typeof ThreadPlacement> = {
     state: "initial",
     coords: { x: 0, y: 0 },
     canComment: true,
@@ -52,7 +52,7 @@ function renderPlacer(
   return {
     ...render(
       <CanvasProvider>
-        <PlaceThreadButton {...props} />
+        <ThreadPlacement {...props} />
       </CanvasProvider>
     ),
     props,
@@ -76,7 +76,7 @@ function placeAt(x: number, y: number, pointerId = 1) {
   fireEvent.click(layer, { clientX: x, clientY: y });
 }
 
-describe("PlaceThreadButton", () => {
+describe("ThreadPlacement", () => {
   afterEach(cleanup);
 
   beforeEach(() => {

@@ -1,7 +1,7 @@
 import type { ThreadData } from "@liveblocks/client";
 import { useThreads, useEditThreadMetadata } from "@liveblocks/react/suspense";
 import { useCallback } from "react";
-import { PlaceThreadButton } from "./PlaceThreadButton";
+import { ThreadPlacement } from "./ThreadPlacement";
 import { useMaxZIndex } from "../hooks";
 import { CanvasProvider, useCanvasViewport } from "./CanvasProvider";
 import { useCanComment } from "../hooks/useCanComment";
@@ -58,7 +58,7 @@ function CommentsCanvasContent() {
   return (
     <CanvasViewport onImageClick={handleImageClick}>
       <ThreadLayer threads={threads} onDragEnd={handleDragEnd} />
-      <PlaceThreadButton
+      <ThreadPlacement
         state={placement.state}
         coords={placement.coords}
         canComment={canComment}
