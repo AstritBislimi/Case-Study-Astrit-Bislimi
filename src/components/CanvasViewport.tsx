@@ -9,9 +9,8 @@ import {
   WheelEvent,
 } from "react";
 import { useCanvasActions, useCanvasViewport } from "./CanvasProvider";
+import { CANVAS_IMAGE_SIZE } from "../lib/canvas/constants";
 
-const IMAGE_WIDTH = 900;
-const IMAGE_HEIGHT = 600;
 const IMAGE_URL =
   "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&h=800&q=85";
 
@@ -23,16 +22,16 @@ function CanvasImageLayer() {
       className="canvas-image"
       data-pan-image
       style={{
-        width: IMAGE_WIDTH,
-        height: IMAGE_HEIGHT,
+        width: CANVAS_IMAGE_SIZE.width,
+        height: CANVAS_IMAGE_SIZE.height,
         transform: `translate3d(${viewport.x}px, ${viewport.y}px, 0) scale(${viewport.zoom})`,
       }}
     >
       <img
         src={IMAGE_URL}
         alt="Mountain landscape"
-        width={IMAGE_WIDTH}
-        height={IMAGE_HEIGHT}
+        width={CANVAS_IMAGE_SIZE.width}
+        height={CANVAS_IMAGE_SIZE.height}
         draggable={false}
       />
     </div>

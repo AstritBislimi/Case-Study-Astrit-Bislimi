@@ -1,12 +1,12 @@
-import { ThreadData } from "@liveblocks/client";
+import type { ThreadData } from "@liveblocks/client";
 import { useThreads, useEditThreadMetadata } from "@liveblocks/react/suspense";
 import { useCallback } from "react";
 import { PlaceThreadButton } from "./PlaceThreadButton";
-import { DraggableThread } from "./DraggableThread";
 import { useMaxZIndex } from "../hooks";
 import { CanvasProvider } from "./CanvasProvider";
 import { CanvasViewport } from "./CanvasViewport";
 import type { Point } from "../lib/canvas/coordinates";
+import { ThreadLayer } from "./ThreadLayer";
 
 export function CommentsCanvas() {
   return (
@@ -23,12 +23,12 @@ function CommentsCanvasContent() {
 
   // Persist the moved pin once its pointer drag ends.
   const handleDragEnd = useCallback(
-    (thread: ThreadData, delta: Point) => {
+    (thread: ThreadData, imagePoint: Point) => {
       editThreadMetadata({
         threadId: thread.id,
         metadata: {
-          x: thread.metadata.x + delta.x,
-          y: thread.metadata.y + delta.y,
+          x: imagePoint.x,
+          y: imagePoint.y,
           zIndex: maxZIndex + 1,
         },
       });
@@ -38,15 +38,7 @@ function CommentsCanvasContent() {
 
   return (
     <CanvasViewport>
-      <div className="canvas-thread-layer">
-        {threads.map((thread) => (
-          <DraggableThread
-            key={thread.id}
-            thread={thread}
-            onDragEnd={handleDragEnd}
-          />
-        ))}
-      </div>
+      <ThreadLayer threads={threads} onDragEnd={handleDragEnd} />
       <PlaceThreadButton />
     </CanvasViewport>
   );

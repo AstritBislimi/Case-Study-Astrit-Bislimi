@@ -5,13 +5,14 @@ import { useMemo } from "react";
 import type { ViewportActions } from "../hooks/useViewport";
 import { useViewport } from "../hooks/useViewport";
 import type { Viewport } from "../lib/canvas/coordinates";
+import { INITIAL_CANVAS_VIEWPORT } from "../lib/canvas/constants";
 
 const CanvasViewportContext = createContext<Viewport | null>(null);
 const CanvasActionsContext = createContext<ViewportActions | null>(null);
 
 export function CanvasProvider({ children }: PropsWithChildren) {
   const { viewport, panBy, zoomAt, zoomByAtPoint, zoomIn, zoomOut } =
-    useViewport({ x: 36, y: 26, zoom: 1 });
+    useViewport(INITIAL_CANVAS_VIEWPORT);
   const actions = useMemo(
     () => ({ panBy, zoomAt, zoomByAtPoint, zoomIn, zoomOut }),
     [panBy, zoomAt, zoomByAtPoint, zoomIn, zoomOut]
@@ -45,4 +46,3 @@ export function useCanvasActions(): ViewportActions {
 
   return actions;
 }
-

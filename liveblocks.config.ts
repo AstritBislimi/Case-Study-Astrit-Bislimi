@@ -10,8 +10,8 @@ declare global {
     };
     // Custom metadata set on threads, for useThreads, useCreateThread, etc.
     ThreadMetadata: {
-      x: number;
-      y: number;
+      x: number; // Normalized image coordinate in the range 0..1
+      y: number; // Normalized image coordinate in the range 0..1
       zIndex: number;
     };
   }

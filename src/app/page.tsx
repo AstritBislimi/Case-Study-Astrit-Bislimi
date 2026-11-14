@@ -9,7 +9,9 @@ import { ErrorBoundary } from "react-error-boundary";
 import { CommentsCanvas } from "../components/CommentsCanvas";
 
 export default function Page() {
-  const roomId = useExampleRoomId("liveblocks:examples:nextjs-comments-canvas");
+  const roomId = useExampleRoomId(
+    "liveblocks:examples:nextjs-comments-canvas-image-v2"
+  );
 
   return (
     <RoomProvider id={roomId}>

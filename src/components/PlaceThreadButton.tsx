@@ -2,12 +2,20 @@ import { useCallback, useEffect, useState } from "react";
 import { CommentPin, FloatingComposer } from "@liveblocks/react-ui";
 import { useSelf } from "@liveblocks/react";
 import { useMaxZIndex } from "../hooks";
+import {
+  imageToScreen,
+  isImagePoint,
+  screenToImage,
+} from "../lib/canvas/coordinates";
+import { CANVAS_IMAGE_SIZE } from "../lib/canvas/constants";
+import { useCanvasViewport } from "./CanvasProvider";
 
 export function PlaceThreadButton() {
   const [state, setState] = useState<"initial" | "placing" | "placed">(
     "initial"
   );
   const [coords, setCoords] = useState({ x: 0, y: 0 });
+  const viewport = useCanvasViewport();
 
   const reset = useCallback(() => {
     setState("initial");
@@ -65,8 +73,16 @@ export function PlaceThreadButton() {
             cursor: "none",
           }}
           onClick={(e) => {
-            // On click, get coords and place down composer
-            setCoords({ x: e.clientX, y: e.clientY });
+            const imagePoint = screenToImage(
+              { x: e.clientX, y: e.clientY },
+              viewport,
+              CANVAS_IMAGE_SIZE
+            );
+            if (!isImagePoint(imagePoint)) {
+              return;
+            }
+
+            setCoords(imagePoint);
             setState("placed");
           }}
           onContextMenu={(e) => {
@@ -97,6 +113,8 @@ function ThreadComposer({
   const creatorId = useSelf((me) => me.id);
   // Create thread above other threads
   const maxZIndex = useMaxZIndex();
+  const viewport = useCanvasViewport();
+  const screenPosition = imageToScreen(coords, viewport, CANVAS_IMAGE_SIZE);
 
   return (
     <FloatingComposer
@@ -115,7 +133,7 @@ function ThreadComposer({
           position: "absolute",
           top: 0,
           left: 0,
-          transform: `translate(${coords.x}px, ${coords.y}px)`,
+          transform: `translate(${screenPosition.x}px, ${screenPosition.y}px)`,
         }}
       />
     </FloatingComposer>

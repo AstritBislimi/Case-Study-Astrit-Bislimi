@@ -70,10 +70,11 @@ body {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  transform-origin: top left;
 }
 
 .canvas-thread-layer > *,
-.canvas-overlays > div {
+.canvas-overlays > div:not(.canvas-thread-layer) {
   pointer-events: auto;
 }
 

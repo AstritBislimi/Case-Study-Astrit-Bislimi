@@ -39,7 +39,7 @@ function createThread(id: string): ThreadData {
     createdAt: now,
     updatedAt: now,
     comments: [],
-    metadata: { x: 20, y: 30, zIndex: 1 },
+    metadata: { x: 0.25, y: 0.5, zIndex: 1 },
     resolved: false,
     visibility: "public",
   };
@@ -54,11 +54,24 @@ describe("DraggableThread", () => {
     const firstThread = createThread("first");
     const secondThread = createThread("second");
     const onDragEnd = vi.fn();
+    const getZoom = () => 2;
 
     render(
       <>
-        <DraggableThread thread={firstThread} onDragEnd={onDragEnd} />
-        <DraggableThread thread={secondThread} onDragEnd={onDragEnd} />
+        <DraggableThread
+          thread={firstThread}
+          imageX={0.25}
+          imageY={0.5}
+          getZoom={getZoom}
+          onDragEnd={onDragEnd}
+        />
+        <DraggableThread
+          thread={secondThread}
+          imageX={0.25}
+          imageY={0.5}
+          getZoom={getZoom}
+          onDragEnd={onDragEnd}
+        />
       </>
     );
 
@@ -78,7 +91,7 @@ describe("DraggableThread", () => {
     });
     fireEvent.pointerMove(pin, {
       pointerId: 1,
-      clientX: 20,
+      clientX: 30,
       clientY: 20,
     });
 
@@ -86,11 +99,14 @@ describe("DraggableThread", () => {
 
     fireEvent.pointerUp(pin, {
       pointerId: 1,
-      clientX: 20,
+      clientX: 30,
       clientY: 20,
     });
 
-    expect(onDragEnd).toHaveBeenCalledWith(firstThread, { x: 10, y: 0 });
+    expect(onDragEnd).toHaveBeenCalledWith(firstThread, {
+      x: 0.25 + 10 / 900,
+      y: 0.5,
+    });
     expect(mocks.floatingThreadRender).toHaveBeenCalledTimes(4);
   });
 });

@@ -8,26 +8,39 @@ import {
 } from "react";
 import { FloatingThread, CommentPin } from "@liveblocks/react-ui";
 import type { ThreadData } from "@liveblocks/client";
+import {
+  imagePointToPixels,
+  offsetImagePoint,
+  screenDeltaToImage,
+} from "../lib/canvas/coordinates";
 import type { Point } from "../lib/canvas/coordinates";
+import { CANVAS_IMAGE_SIZE } from "../lib/canvas/constants";
 import { useMaxZIndex } from "../hooks";
 
 const DRAG_THRESHOLD = 3;
 
 type DraggableThreadProps = {
   thread: ThreadData;
-  onDragEnd: (thread: ThreadData, delta: Point) => void;
+  imageX: number;
+  imageY: number;
+  getZoom: () => number;
+  onDragEnd: (thread: ThreadData, imagePoint: Point) => void;
 };
 
 type ActivePointer = {
   id: number;
   startX: number;
   startY: number;
+  zoom: number;
   delta: Point;
   isDragging: boolean;
 };
 
 export const DraggableThread = memo(function DraggableThread({
   thread,
+  imageX,
+  imageY,
+  getZoom,
   onDragEnd,
 }: DraggableThreadProps) {
   // Open threads that have just been created
@@ -43,6 +56,12 @@ export const DraggableThread = memo(function DraggableThread({
   const maxZIndex = useMaxZIndex();
   const currentZIndex =
     isOpen || dragDelta ? maxZIndex + 1 : thread.metadata?.zIndex || 0;
+  const imagePosition = offsetImagePoint(
+    { x: imageX, y: imageY },
+    dragDelta ?? { x: 0, y: 0 },
+    CANVAS_IMAGE_SIZE
+  );
+  const pinPosition = imagePointToPixels(imagePosition, CANVAS_IMAGE_SIZE);
 
   const handlePointerDown = (event: PointerEvent<HTMLButtonElement>) => {
     if (event.button !== 0 || !event.isPrimary) {
@@ -54,6 +73,7 @@ export const DraggableThread = memo(function DraggableThread({
       id: event.pointerId,
       startX: event.clientX,
       startY: event.clientY,
+      zoom: getZoom(),
       delta: { x: 0, y: 0 },
       isDragging: false,
     };
@@ -66,18 +86,21 @@ export const DraggableThread = memo(function DraggableThread({
       return;
     }
 
-    const delta = {
+    const screenDelta = {
       x: event.clientX - pointer.startX,
       y: event.clientY - pointer.startY,
     };
-    if (!pointer.isDragging && Math.hypot(delta.x, delta.y) < DRAG_THRESHOLD) {
+    if (
+      !pointer.isDragging &&
+      Math.hypot(screenDelta.x, screenDelta.y) < DRAG_THRESHOLD
+    ) {
       return;
     }
 
     pointer.isDragging = true;
-    pointer.delta = delta;
+    pointer.delta = screenDeltaToImage(screenDelta, pointer.zoom);
     event.preventDefault();
-    setDragDelta(delta);
+    setDragDelta(pointer.delta);
   };
 
   const handlePointerUp = (event: PointerEvent<HTMLButtonElement>) => {
@@ -89,7 +112,14 @@ export const DraggableThread = memo(function DraggableThread({
     activePointer.current = null;
     if (pointer.isDragging) {
       suppressClick.current = true;
-      onDragEnd(thread, pointer.delta);
+      onDragEnd(
+        thread,
+        offsetImagePoint(
+          { x: imageX, y: imageY },
+          pointer.delta,
+          CANVAS_IMAGE_SIZE
+        )
+      );
     }
     setDragDelta(null);
 
@@ -124,13 +154,13 @@ export const DraggableThread = memo(function DraggableThread({
       style={{ pointerEvents: dragDelta ? "none" : "auto" }}
     >
       <div
+        className="canvas-thread-anchor"
         style={{
           position: "absolute",
           top: 0,
           left: 0,
-          transform: `translate3d(${thread.metadata.x + (dragDelta?.x ?? 0)}px, ${
-            thread.metadata.y + (dragDelta?.y ?? 0)
-          }px, 0)`,
+          transform: `translate3d(${pinPosition.x}px, ${pinPosition.y}px, 0) scale(var(--canvas-inverse-zoom))`,
+          transformOrigin: "top left",
           zIndex: currentZIndex,
         }}
       >

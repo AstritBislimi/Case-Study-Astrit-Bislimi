@@ -14,6 +14,45 @@ export type ImageSize = {
   height: number;
 };
 
+export function isImagePoint(point: Point): boolean {
+  return (
+    Number.isFinite(point.x) &&
+    Number.isFinite(point.y) &&
+    point.x >= 0 &&
+    point.x <= 1 &&
+    point.y >= 0 &&
+    point.y <= 1
+  );
+}
+
+export function imagePointToPixels(
+  imagePoint: Point,
+  imageSize: ImageSize
+): Point {
+  return {
+    x: imagePoint.x * imageSize.width,
+    y: imagePoint.y * imageSize.height,
+  };
+}
+
+export function screenDeltaToImage(delta: Point, zoom: number): Point {
+  return {
+    x: delta.x / zoom,
+    y: delta.y / zoom,
+  };
+}
+
+export function offsetImagePoint(
+  imagePoint: Point,
+  imageDelta: Point,
+  imageSize: ImageSize
+): Point {
+  return {
+    x: Math.min(1, Math.max(0, imagePoint.x + imageDelta.x / imageSize.width)),
+    y: Math.min(1, Math.max(0, imagePoint.y + imageDelta.y / imageSize.height)),
+  };
+}
+
 export function screenToImage(
   screenPoint: Point,
   viewport: Viewport,
@@ -51,11 +90,7 @@ export function zoomAtPoint(
   };
 }
 
-export function clampZoom(
-  zoom: number,
-  minZoom = 0.5,
-  maxZoom = 3
-): number {
+export function clampZoom(zoom: number, minZoom = 0.5, maxZoom = 3): number {
   return Math.min(Math.max(zoom, minZoom), maxZoom);
 }
 

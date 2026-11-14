@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
   clampZoom,
   getThreadSide,
+  imagePointToPixels,
   imageToScreen,
+  isImagePoint,
+  offsetImagePoint,
+  screenDeltaToImage,
   screenToImage,
   zoomAtPoint,
 } from "./coordinates";
@@ -12,9 +16,10 @@ describe("screenToImage and imageToScreen", () => {
   const imageSize = { width: 400, height: 200 };
 
   it("converts screen coordinates to normalized image coordinates", () => {
-    expect(
-      screenToImage({ x: 500, y: 250 }, viewport, imageSize)
-    ).toEqual({ x: 0.5, y: 0.5 });
+    expect(screenToImage({ x: 500, y: 250 }, viewport, imageSize)).toEqual({
+      x: 0.5,
+      y: 0.5,
+    });
   });
 
   it("maps image corners to the corresponding screen corners", () => {
@@ -31,8 +36,40 @@ describe("screenToImage and imageToScreen", () => {
   it("round-trips an image point through screen coordinates", () => {
     const imagePoint = { x: 0.25, y: 0.75 };
     expect(
-      screenToImage(imageToScreen(imagePoint, viewport, imageSize), viewport, imageSize)
+      screenToImage(
+        imageToScreen(imagePoint, viewport, imageSize),
+        viewport,
+        imageSize
+      )
     ).toEqual(imagePoint);
+  });
+});
+
+describe("image point helpers", () => {
+  it("converts normalized points and screen deltas to image pixels", () => {
+    expect(
+      imagePointToPixels({ x: 0.25, y: 0.75 }, { width: 400, height: 200 })
+    ).toEqual({ x: 100, y: 150 });
+    expect(screenDeltaToImage({ x: 20, y: -10 }, 2)).toEqual({
+      x: 10,
+      y: -5,
+    });
+  });
+
+  it("keeps image points within the normalized bounds after dragging", () => {
+    expect(
+      offsetImagePoint(
+        { x: 0.95, y: 0.02 },
+        { x: 80, y: -20 },
+        { width: 800, height: 400 }
+      )
+    ).toEqual({ x: 1, y: 0 });
+  });
+
+  it("recognizes only finite normalized image points", () => {
+    expect(isImagePoint({ x: 0, y: 1 })).toBe(true);
+    expect(isImagePoint({ x: 1.01, y: 0.5 })).toBe(false);
+    expect(isImagePoint({ x: Number.NaN, y: 0.5 })).toBe(false);
   });
 });
 
