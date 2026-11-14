@@ -12,7 +12,10 @@ type ThreadLayerProps = {
   onDragEnd: (thread: ThreadData, imagePoint: Point) => void;
 };
 
-export function ThreadLayer({ threads, onDragEnd }: ThreadLayerProps) {
+export function ThreadLayer({
+  threads,
+  onDragEnd,
+}: ThreadLayerProps) {
   const viewport = useCanvasViewport();
   const viewportRef = useRef(viewport);
   viewportRef.current = viewport;

@@ -7,6 +7,7 @@ import {
   useCallback,
   useEffect,
   useRef,
+  useState,
 } from "react";
 import { useCanvasActions, useCanvasViewport } from "./CanvasProvider";
 import { CANVAS_IMAGE_SIZE } from "../lib/canvas/constants";
@@ -14,7 +15,7 @@ import { CANVAS_IMAGE_SIZE } from "../lib/canvas/constants";
 const IMAGE_URL =
   "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&h=800&q=85";
 
-function CanvasImageLayer() {
+function CanvasImageLayer({ onError }: { onError: () => void }) {
   const viewport = useCanvasViewport();
 
   return (
@@ -33,6 +34,7 @@ function CanvasImageLayer() {
         width={CANVAS_IMAGE_SIZE.width}
         height={CANVAS_IMAGE_SIZE.height}
         draggable={false}
+        onError={onError}
       />
     </div>
   );
@@ -72,6 +74,32 @@ const CanvasOverlayLayer = memo(function CanvasOverlayLayer({
 }: PropsWithChildren) {
   return <div className="canvas-overlays">{children}</div>;
 });
+
+function CanvasSurface({
+  children,
+  getCanvasCenter,
+}: PropsWithChildren<{
+  getCanvasCenter: () => { x: number; y: number };
+}>) {
+  const [imageError, setImageError] = useState(false);
+  const handleImageError = useCallback(() => setImageError(true), []);
+
+  return (
+    <>
+      <CanvasImageLayer onError={handleImageError} />
+      {imageError ? (
+        <div className="canvas-image-error" role="alert">
+          The image couldn’t be loaded. Commenting is disabled.
+        </div>
+      ) : (
+        <>
+          <CanvasOverlayLayer>{children}</CanvasOverlayLayer>
+          <CanvasZoomControls getCanvasCenter={getCanvasCenter} />
+        </>
+      )}
+    </>
+  );
+}
 
 export function CanvasViewport({ children }: PropsWithChildren) {
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -167,9 +195,9 @@ export function CanvasViewport({ children }: PropsWithChildren) {
       onPointerUp={finishPan}
       onPointerCancel={finishPan}
     >
-      <CanvasImageLayer />
-      <CanvasOverlayLayer>{children}</CanvasOverlayLayer>
-      <CanvasZoomControls getCanvasCenter={getCanvasCenter} />
+      <CanvasSurface getCanvasCenter={getCanvasCenter}>
+        {children}
+      </CanvasSurface>
     </div>
   );
 }

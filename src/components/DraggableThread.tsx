@@ -2,6 +2,7 @@ import {
   memo,
   MouseEvent,
   PointerEvent,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -16,6 +17,7 @@ import {
 import type { Point } from "../lib/canvas/coordinates";
 import { CANVAS_IMAGE_SIZE } from "../lib/canvas/constants";
 import { useMaxZIndex } from "../hooks";
+import { useCanComment } from "../hooks/useCanComment";
 import { ThreadPopover } from "./ThreadPopover";
 
 const DRAG_THRESHOLD = 3;
@@ -44,6 +46,7 @@ export const DraggableThread = memo(function DraggableThread({
   getZoom,
   onDragEnd,
 }: DraggableThreadProps) {
+  const canComment = useCanComment();
   // Open threads that have just been created
   const defaultOpen = useMemo(() => {
     return Number(new Date()) - Number(new Date(thread.createdAt)) <= 100;
@@ -52,6 +55,13 @@ export const DraggableThread = memo(function DraggableThread({
   const [dragDelta, setDragDelta] = useState<Point | null>(null);
   const activePointer = useRef<ActivePointer | null>(null);
   const suppressClick = useRef(false);
+
+  useEffect(() => {
+    if (!canComment) {
+      activePointer.current = null;
+      setDragDelta(null);
+    }
+  }, [canComment]);
 
   // Used to set z-index higher than other threads when open or dragging
   const maxZIndex = useMaxZIndex();
@@ -65,7 +75,7 @@ export const DraggableThread = memo(function DraggableThread({
   const pinPosition = imagePointToPixels(imagePosition, CANVAS_IMAGE_SIZE);
 
   const handlePointerDown = (event: PointerEvent<HTMLButtonElement>) => {
-    if (event.button !== 0 || !event.isPrimary) {
+    if (!canComment || event.button !== 0 || !event.isPrimary) {
       return;
     }
 
@@ -82,6 +92,10 @@ export const DraggableThread = memo(function DraggableThread({
   };
 
   const handlePointerMove = (event: PointerEvent<HTMLButtonElement>) => {
+    if (!canComment) {
+      return;
+    }
+
     const pointer = activePointer.current;
     if (!pointer || pointer.id !== event.pointerId) {
       return;
@@ -111,7 +125,7 @@ export const DraggableThread = memo(function DraggableThread({
     }
 
     activePointer.current = null;
-    if (pointer.isDragging) {
+    if (pointer.isDragging && canComment) {
       suppressClick.current = true;
       onDragEnd(
         thread,
@@ -152,6 +166,7 @@ export const DraggableThread = memo(function DraggableThread({
       imageX={imageX}
       open={isOpen}
       onOpenChange={setIsOpen}
+      showComposer={canComment}
       defaultOpen={defaultOpen}
       style={{ pointerEvents: dragDelta ? "none" : "auto" }}
     >

@@ -57,4 +57,26 @@ describe("CanvasViewport wheel zoom", () => {
     expect(wheelEvent.defaultPrevented).toBe(false);
     expect(screen.getByText("100%")).toBeInTheDocument();
   });
+
+  it("shows a fallback and removes commenting controls when the image fails", () => {
+    render(
+      <CanvasProvider>
+        <CanvasViewport>
+          <button type="button">Place comment</button>
+        </CanvasViewport>
+      </CanvasProvider>
+    );
+
+    fireEvent.error(screen.getByRole("img", { name: "Mountain landscape" }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "The image couldn’t be loaded. Commenting is disabled."
+    );
+    expect(
+      screen.queryByRole("button", { name: "Place comment" })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Zoom in" })
+    ).not.toBeInTheDocument();
+  });
 });

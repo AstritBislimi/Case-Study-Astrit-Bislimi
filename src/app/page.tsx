@@ -7,6 +7,10 @@ import { Loading } from "../components/Loading";
 import { ClientSideSuspense } from "@liveblocks/react";
 import { ErrorBoundary } from "react-error-boundary";
 import { CommentsCanvas } from "../components/CommentsCanvas";
+import {
+  CommentsErrorFallback,
+  RoomConnectionStatus,
+} from "../components/RoomConnectionStatus";
 
 export default function Page() {
   const roomId = useExampleRoomId(
@@ -15,10 +19,11 @@ export default function Page() {
 
   return (
     <RoomProvider id={roomId}>
+      <RoomConnectionStatus />
       <ErrorBoundary
-        fallback={
-          <div className="error">There was an error while getting threads.</div>
-        }
+        fallbackRender={({ resetErrorBoundary }) => (
+          <CommentsErrorFallback resetErrorBoundary={resetErrorBoundary} />
+        )}
       >
         <ClientSideSuspense fallback={<Loading />}>
           <CommentsCanvas />

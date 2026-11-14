@@ -6,6 +6,7 @@ import { PlaceThreadButton } from "./PlaceThreadButton";
 
 const mocks = vi.hoisted(() => ({
   floatingComposer: vi.fn(),
+  canComment: true,
 }));
 
 vi.mock("@liveblocks/react-ui", () => ({
@@ -34,6 +35,10 @@ vi.mock("@liveblocks/react", () => ({
 
 vi.mock("../hooks", () => ({
   useMaxZIndex: () => 10,
+}));
+
+vi.mock("../hooks/useCanComment", () => ({
+  useCanComment: () => mocks.canComment,
 }));
 
 function renderPlacer() {
@@ -66,6 +71,7 @@ describe("PlaceThreadButton", () => {
 
   beforeEach(() => {
     mocks.floatingComposer.mockClear();
+    mocks.canComment = true;
   });
 
   it("places a normalized comment and opens it inward near the image's right edge", () => {
@@ -114,6 +120,37 @@ describe("PlaceThreadButton", () => {
     expect(screen.getByTestId("comment-placement-layer")).toBeInTheDocument();
 
     fireEvent.keyDown(document, { key: "Escape" });
+
+    expect(
+      screen.queryByTestId("comment-placement-layer")
+    ).not.toBeInTheDocument();
+  });
+
+  it("disables new comment placement when the room is not connected", () => {
+    mocks.canComment = false;
+    renderPlacer();
+
+    const button = screen.getByRole("button", { name: "Place comment" });
+    expect(button).toBeDisabled();
+    fireEvent.click(button);
+
+    expect(
+      screen.queryByTestId("comment-placement-layer")
+    ).not.toBeInTheDocument();
+    expect(mocks.floatingComposer).not.toHaveBeenCalled();
+  });
+
+  it("cancels an active placement when the room disconnects", () => {
+    const { rerender } = renderPlacer();
+    fireEvent.click(screen.getByRole("button", { name: "Place comment" }));
+    expect(screen.getByTestId("comment-placement-layer")).toBeInTheDocument();
+
+    mocks.canComment = false;
+    rerender(
+      <CanvasProvider>
+        <PlaceThreadButton />
+      </CanvasProvider>
+    );
 
     expect(
       screen.queryByTestId("comment-placement-layer")

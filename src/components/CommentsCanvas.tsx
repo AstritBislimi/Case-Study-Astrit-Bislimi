@@ -38,7 +38,10 @@ function CommentsCanvasContent() {
 
   return (
     <CanvasViewport>
-      <ThreadLayer threads={threads} onDragEnd={handleDragEnd} />
+      <ThreadLayer
+        threads={threads}
+        onDragEnd={handleDragEnd}
+      />
       <PlaceThreadButton />
     </CanvasViewport>
   );

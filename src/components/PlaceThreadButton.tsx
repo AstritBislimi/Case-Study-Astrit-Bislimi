@@ -3,6 +3,7 @@ import type { MouseEvent as ReactMouseEvent, PointerEvent } from "react";
 import { CommentPin } from "@liveblocks/react-ui";
 import { useSelf } from "@liveblocks/react";
 import { useMaxZIndex } from "../hooks";
+import { useCanComment } from "../hooks/useCanComment";
 import {
   imageToScreen,
   isImagePoint,
@@ -15,6 +16,7 @@ import { ThreadPopover } from "./ThreadPopover";
 const PLACEMENT_DRAG_THRESHOLD = 3;
 
 export function PlaceThreadButton() {
+  const canComment = useCanComment();
   const [state, setState] = useState<"initial" | "placing" | "placed">(
     "initial"
   );
@@ -35,6 +37,12 @@ export function PlaceThreadButton() {
   }, []);
 
   useEffect(() => {
+    if (!canComment) {
+      reset();
+    }
+  }, [canComment, reset]);
+
+  useEffect(() => {
     if (state === "initial") {
       return;
     }
@@ -50,7 +58,7 @@ export function PlaceThreadButton() {
   }, [reset, state]);
 
   const handlePlacementPointerDown = (event: PointerEvent<HTMLDivElement>) => {
-    if (event.button !== 0 || !event.isPrimary) {
+    if (!canComment || event.button !== 0 || !event.isPrimary) {
       return;
     }
 
@@ -62,6 +70,10 @@ export function PlaceThreadButton() {
   };
 
   const handlePlacementPointerUp = (event: PointerEvent<HTMLDivElement>) => {
+    if (!canComment) {
+      return;
+    }
+
     const pointer = placementPointer.current;
     if (!pointer || pointer.id !== event.pointerId) {
       return;
@@ -76,6 +88,11 @@ export function PlaceThreadButton() {
   };
 
   const handlePlacementClick = (event: ReactMouseEvent<HTMLDivElement>) => {
+    if (!canComment) {
+      reset();
+      return;
+    }
+
     if (!shouldPlaceOnClick.current) {
       event.preventDefault();
       event.stopPropagation();
@@ -104,7 +121,12 @@ export function PlaceThreadButton() {
         <button
           type="button"
           aria-label="Place comment"
-          onClick={() => setState("placing")}
+          disabled={!canComment}
+          onClick={() => {
+            if (canComment) {
+              setState("placing");
+            }
+          }}
           style={{
             cursor: state === "placing" ? "none" : undefined,
             background: "#ffffff",
@@ -168,7 +190,7 @@ export function PlaceThreadButton() {
       ) : null}
 
       {/* When cursor placed, show a composer on the canvas */}
-      {state === "placed" ? (
+      {state === "placed" && canComment ? (
         <ThreadComposer coords={coords} onClose={reset} />
       ) : null}
     </>

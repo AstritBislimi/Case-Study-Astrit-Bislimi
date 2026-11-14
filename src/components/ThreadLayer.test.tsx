@@ -31,6 +31,10 @@ vi.mock("../hooks", () => ({
   useMaxZIndex: () => 10,
 }));
 
+vi.mock("../hooks/useCanComment", () => ({
+  useCanComment: () => true,
+}));
+
 function createThread(): ThreadData {
   const now = new Date();
   return {
@@ -62,7 +66,10 @@ describe("ThreadLayer", () => {
     const onDragEnd = vi.fn();
     const { container } = render(
       <CanvasProvider>
-        <ThreadLayer threads={[thread]} onDragEnd={onDragEnd} />
+        <ThreadLayer
+          threads={[thread]}
+          onDragEnd={onDragEnd}
+        />
         <ZoomControl />
       </CanvasProvider>
     );

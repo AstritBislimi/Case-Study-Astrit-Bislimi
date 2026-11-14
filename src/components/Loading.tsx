@@ -1,7 +1,7 @@
 export function Loading() {
   return (
-    <div className="loading">
-      <img src="https://liveblocks.io/loading.svg" alt="Loading" />
+    <div className="loading" role="status" aria-label="Loading comments">
+      <div className="loading-spinner" aria-hidden="true" />
     </div>
   );
 }

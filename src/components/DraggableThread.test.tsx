@@ -6,6 +6,9 @@ import { DraggableThread } from "./DraggableThread";
 
 const mocks = vi.hoisted(() => ({
   floatingThreadRender: vi.fn(),
+  floatingThreadOpen: vi.fn(),
+  floatingThreadComposer: vi.fn(),
+  canComment: true,
 }));
 
 vi.mock("@liveblocks/react-ui", () => ({
@@ -13,8 +16,17 @@ vi.mock("@liveblocks/react-ui", () => ({
     children,
     style,
     side,
-  }: PropsWithChildren<{ style?: CSSProperties; side?: string }>) => {
+    open,
+    showComposer,
+  }: PropsWithChildren<{
+    style?: CSSProperties;
+    side?: string;
+    open?: boolean;
+    showComposer?: boolean;
+  }>) => {
     mocks.floatingThreadRender(side);
+    mocks.floatingThreadOpen(open);
+    mocks.floatingThreadComposer(showComposer);
     return <div style={style}>{children}</div>;
   },
   CommentPin: ({
@@ -29,6 +41,10 @@ vi.mock("@liveblocks/react-ui", () => ({
 
 vi.mock("../hooks", () => ({
   useMaxZIndex: () => 10,
+}));
+
+vi.mock("../hooks/useCanComment", () => ({
+  useCanComment: () => mocks.canComment,
 }));
 
 function createThread(id: string): ThreadData {
@@ -51,6 +67,9 @@ describe("DraggableThread", () => {
 
   beforeEach(() => {
     mocks.floatingThreadRender.mockClear();
+    mocks.floatingThreadOpen.mockClear();
+    mocks.floatingThreadComposer.mockClear();
+    mocks.canComment = true;
   });
 
   it("rerenders only the active thread while dragging", () => {
@@ -159,6 +178,58 @@ describe("DraggableThread", () => {
     fireEvent.pointerUp(pin, {
       pointerId: 2,
       clientX: 12,
+      clientY: 20,
+    });
+
+    expect(onDragEnd).not.toHaveBeenCalled();
+  });
+
+  it("keeps the thread open but hides its composer when disconnected", () => {
+    const onDragEnd = vi.fn();
+    const thread = createThread("offline");
+    const { rerender } = render(
+      <DraggableThread
+        thread={thread}
+        imageX={0.25}
+        imageY={0.5}
+        getZoom={() => 1}
+        onDragEnd={onDragEnd}
+      />
+    );
+
+    expect(mocks.floatingThreadOpen).toHaveBeenLastCalledWith(true);
+
+    mocks.canComment = false;
+    rerender(
+      <DraggableThread
+        thread={thread}
+        imageX={0.25}
+        imageY={0.5}
+        getZoom={() => 1}
+        onDragEnd={onDragEnd}
+      />
+    );
+
+    expect(screen.getByRole("button", { name: "Pin" })).not.toBeDisabled();
+    expect(mocks.floatingThreadOpen).toHaveBeenLastCalledWith(true);
+    expect(mocks.floatingThreadComposer).toHaveBeenLastCalledWith(false);
+
+    const pin = screen.getByRole("button", { name: "Pin" });
+    fireEvent.pointerDown(pin, {
+      pointerId: 1,
+      isPrimary: true,
+      button: 0,
+      clientX: 10,
+      clientY: 20,
+    });
+    fireEvent.pointerMove(pin, {
+      pointerId: 1,
+      clientX: 30,
+      clientY: 20,
+    });
+    fireEvent.pointerUp(pin, {
+      pointerId: 1,
+      clientX: 30,
       clientY: 20,
     });
 
