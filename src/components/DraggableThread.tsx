@@ -15,12 +15,13 @@ import {
   screenDeltaToImage,
 } from "../lib/canvas/coordinates";
 import type { Point } from "../lib/canvas/coordinates";
-import { CANVAS_IMAGE_SIZE } from "../lib/canvas/constants";
+import {
+  CANVAS_IMAGE_SIZE,
+  POINTER_DRAG_THRESHOLD,
+} from "../lib/canvas/constants";
 import { useMaxZIndex } from "../hooks";
 import { useCanComment } from "../hooks/useCanComment";
 import { ThreadPopover } from "./ThreadPopover";
-
-const DRAG_THRESHOLD = 3;
 
 type DraggableThreadProps = {
   thread: ThreadData;
@@ -107,7 +108,7 @@ export const DraggableThread = memo(function DraggableThread({
     };
     if (
       !pointer.isDragging &&
-      Math.hypot(screenDelta.x, screenDelta.y) < DRAG_THRESHOLD
+      Math.hypot(screenDelta.x, screenDelta.y) < POINTER_DRAG_THRESHOLD
     ) {
       return;
     }

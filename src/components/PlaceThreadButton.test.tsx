@@ -6,7 +6,6 @@ import { PlaceThreadButton } from "./PlaceThreadButton";
 
 const mocks = vi.hoisted(() => ({
   floatingComposer: vi.fn(),
-  canComment: true,
 }));
 
 vi.mock("@liveblocks/react-ui", () => ({
@@ -37,16 +36,27 @@ vi.mock("../hooks", () => ({
   useMaxZIndex: () => 10,
 }));
 
-vi.mock("../hooks/useCanComment", () => ({
-  useCanComment: () => mocks.canComment,
-}));
+function renderPlacer(
+  overrides: Partial<ComponentProps<typeof PlaceThreadButton>> = {}
+) {
+  const props: ComponentProps<typeof PlaceThreadButton> = {
+    state: "initial",
+    coords: { x: 0, y: 0 },
+    canComment: true,
+    startPlacing: vi.fn(),
+    placeAtImagePoint: vi.fn(),
+    reset: vi.fn(),
+    ...overrides,
+  };
 
-function renderPlacer() {
-  return render(
-    <CanvasProvider>
-      <PlaceThreadButton />
-    </CanvasProvider>
-  );
+  return {
+    ...render(
+      <CanvasProvider>
+        <PlaceThreadButton {...props} />
+      </CanvasProvider>
+    ),
+    props,
+  };
 }
 
 function placeAt(x: number, y: number, pointerId = 1) {
@@ -71,13 +81,13 @@ describe("PlaceThreadButton", () => {
 
   beforeEach(() => {
     mocks.floatingComposer.mockClear();
-    mocks.canComment = true;
   });
 
-  it("places a normalized comment and opens it inward near the image's right edge", () => {
-    const { container } = renderPlacer();
-    fireEvent.click(screen.getByRole("button", { name: "Place comment" }));
-    placeAt(836, 588.5);
+  it("renders the composer at the supplied normalized image point", () => {
+    const { container } = renderPlacer({
+      state: "placed",
+      coords: { x: 800 / 900, y: 0.5 },
+    });
 
     expect(mocks.floatingComposer).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -91,11 +101,29 @@ describe("PlaceThreadButton", () => {
     ).toBe("translate(836px, 588.5px)");
   });
 
-  it("does not place a comment after a drag or outside the image", () => {
-    renderPlacer();
+  it("starts placement from the plus button", () => {
+    const { props } = renderPlacer();
+
     fireEvent.click(screen.getByRole("button", { name: "Place comment" }));
 
+    expect(props.startPlacing).toHaveBeenCalledOnce();
+  });
+
+  it("passes a valid placement click to the supplied callback", () => {
+    const { props } = renderPlacer({ state: "placing" });
+
+    placeAt(836, 588.5);
+
+    expect(props.placeAtImagePoint).toHaveBeenCalledWith({
+      x: 800 / 900,
+      y: 0.5,
+    });
+  });
+
+  it("does not place after a drag or at a point outside the image", () => {
+    const { props } = renderPlacer({ state: "placing" });
     const layer = screen.getByTestId("comment-placement-layer");
+
     fireEvent.pointerDown(layer, {
       pointerId: 1,
       isPrimary: true,
@@ -111,47 +139,18 @@ describe("PlaceThreadButton", () => {
     fireEvent.click(layer, { clientX: 401, clientY: 326 });
     placeAt(1000, 700, 2);
 
-    expect(mocks.floatingComposer).not.toHaveBeenCalled();
+    expect(props.placeAtImagePoint).not.toHaveBeenCalled();
+    expect(props.reset).toHaveBeenCalledOnce();
   });
 
-  it("cancels placement with Escape", () => {
-    renderPlacer();
-    fireEvent.click(screen.getByRole("button", { name: "Place comment" }));
-    expect(screen.getByTestId("comment-placement-layer")).toBeInTheDocument();
-
-    fireEvent.keyDown(document, { key: "Escape" });
-
-    expect(
-      screen.queryByTestId("comment-placement-layer")
-    ).not.toBeInTheDocument();
-  });
-
-  it("disables new comment placement when the room is not connected", () => {
-    mocks.canComment = false;
-    renderPlacer();
-
+  it("disables placement and ignores clicks when commenting is unavailable", () => {
+    const { props } = renderPlacer({ canComment: false });
     const button = screen.getByRole("button", { name: "Place comment" });
+
     expect(button).toBeDisabled();
     fireEvent.click(button);
 
-    expect(
-      screen.queryByTestId("comment-placement-layer")
-    ).not.toBeInTheDocument();
-    expect(mocks.floatingComposer).not.toHaveBeenCalled();
-  });
-
-  it("cancels an active placement when the room disconnects", () => {
-    const { rerender } = renderPlacer();
-    fireEvent.click(screen.getByRole("button", { name: "Place comment" }));
-    expect(screen.getByTestId("comment-placement-layer")).toBeInTheDocument();
-
-    mocks.canComment = false;
-    rerender(
-      <CanvasProvider>
-        <PlaceThreadButton />
-      </CanvasProvider>
-    );
-
+    expect(props.startPlacing).not.toHaveBeenCalled();
     expect(
       screen.queryByTestId("comment-placement-layer")
     ).not.toBeInTheDocument();

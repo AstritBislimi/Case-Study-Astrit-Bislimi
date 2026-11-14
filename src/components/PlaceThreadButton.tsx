@@ -1,26 +1,39 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { MouseEvent as ReactMouseEvent, PointerEvent } from "react";
 import { CommentPin } from "@liveblocks/react-ui";
 import { useSelf } from "@liveblocks/react";
 import { useMaxZIndex } from "../hooks";
-import { useCanComment } from "../hooks/useCanComment";
 import {
   imageToScreen,
   isImagePoint,
   screenToImage,
 } from "../lib/canvas/coordinates";
-import { CANVAS_IMAGE_SIZE } from "../lib/canvas/constants";
+import type { Point } from "../lib/canvas/coordinates";
+import {
+  CANVAS_IMAGE_SIZE,
+  POINTER_DRAG_THRESHOLD,
+} from "../lib/canvas/constants";
+import type { ThreadPlacementState } from "../hooks/useThreadPlacement";
 import { useCanvasViewport } from "./CanvasProvider";
 import { ThreadPopover } from "./ThreadPopover";
 
-const PLACEMENT_DRAG_THRESHOLD = 3;
+type PlaceThreadButtonProps = {
+  state: ThreadPlacementState;
+  coords: Point;
+  canComment: boolean;
+  startPlacing: () => void;
+  placeAtImagePoint: (imagePoint: Point) => void;
+  reset: () => void;
+};
 
-export function PlaceThreadButton() {
-  const canComment = useCanComment();
-  const [state, setState] = useState<"initial" | "placing" | "placed">(
-    "initial"
-  );
-  const [coords, setCoords] = useState({ x: 0, y: 0 });
+export function PlaceThreadButton({
+  state,
+  coords,
+  canComment,
+  startPlacing,
+  placeAtImagePoint,
+  reset,
+}: PlaceThreadButtonProps) {
   const viewport = useCanvasViewport();
   const placementPointer = useRef<{
     id: number;
@@ -29,33 +42,18 @@ export function PlaceThreadButton() {
   } | null>(null);
   const shouldPlaceOnClick = useRef(false);
 
-  const reset = useCallback(() => {
-    setState("initial");
-    setCoords({ x: 0, y: 0 });
+  useEffect(() => {
+    if (state !== "placing") {
+      placementPointer.current = null;
+      shouldPlaceOnClick.current = false;
+    }
+  }, [state]);
+
+  const handleReset = () => {
     placementPointer.current = null;
     shouldPlaceOnClick.current = false;
-  }, []);
-
-  useEffect(() => {
-    if (!canComment) {
-      reset();
-    }
-  }, [canComment, reset]);
-
-  useEffect(() => {
-    if (state === "initial") {
-      return;
-    }
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        reset();
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [reset, state]);
+    reset();
+  };
 
   const handlePlacementPointerDown = (event: PointerEvent<HTMLDivElement>) => {
     if (!canComment || event.button !== 0 || !event.isPrimary) {
@@ -84,12 +82,12 @@ export function PlaceThreadButton() {
       event.clientX - pointer.x,
       event.clientY - pointer.y
     );
-    shouldPlaceOnClick.current = movement < PLACEMENT_DRAG_THRESHOLD;
+    shouldPlaceOnClick.current = movement < POINTER_DRAG_THRESHOLD;
   };
 
   const handlePlacementClick = (event: ReactMouseEvent<HTMLDivElement>) => {
     if (!canComment) {
-      reset();
+      handleReset();
       return;
     }
 
@@ -106,12 +104,11 @@ export function PlaceThreadButton() {
       CANVAS_IMAGE_SIZE
     );
     if (!isImagePoint(imagePoint)) {
-      reset();
+      handleReset();
       return;
     }
 
-    setCoords(imagePoint);
-    setState("placed");
+    placeAtImagePoint(imagePoint);
   };
 
   return (
@@ -123,11 +120,7 @@ export function PlaceThreadButton() {
           type="button"
           aria-label="Place comment"
           disabled={!canComment}
-          onClick={() => {
-            if (canComment) {
-              setState("placing");
-            }
-          }}
+          onClick={startPlacing}
           style={{ cursor: state === "placing" ? "none" : undefined }}
         >
           <span aria-hidden="true">+</span>
@@ -146,10 +139,10 @@ export function PlaceThreadButton() {
           pointerEvents: state === "initial" ? "none" : undefined,
           opacity: state !== "initial" ? 1 : 0,
         }}
-        onClick={reset}
+        onClick={handleReset}
         onContextMenu={(e) => {
           e.preventDefault();
-          reset();
+          handleReset();
         }}
       />
 
@@ -175,7 +168,7 @@ export function PlaceThreadButton() {
           onClick={handlePlacementClick}
           onContextMenu={(e) => {
             e.preventDefault();
-            reset();
+            handleReset();
           }}
         >
           <NewThreadCursor />
@@ -184,7 +177,7 @@ export function PlaceThreadButton() {
 
       {/* When cursor placed, show a composer on the canvas */}
       {state === "placed" && canComment ? (
-        <ThreadComposer coords={coords} onClose={reset} />
+        <ThreadComposer coords={coords} onClose={handleReset} />
       ) : null}
     </>
   );

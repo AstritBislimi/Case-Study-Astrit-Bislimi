@@ -10,7 +10,11 @@ import {
   useState,
 } from "react";
 import { useCanvasActions, useCanvasViewport } from "./CanvasProvider";
-import { CANVAS_IMAGE_SIZE } from "../lib/canvas/constants";
+import type { Point } from "../lib/canvas/coordinates";
+import {
+  CANVAS_IMAGE_SIZE,
+  POINTER_DRAG_THRESHOLD,
+} from "../lib/canvas/constants";
 
 const IMAGE_URL =
   "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&h=1125&q=85";
@@ -101,12 +105,19 @@ function CanvasSurface({
   );
 }
 
-export function CanvasViewport({ children }: PropsWithChildren) {
+export function CanvasViewport({
+  children,
+  onImageClick,
+}: PropsWithChildren<{
+  onImageClick?: (screenPoint: Point) => void;
+}>) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const activePointer = useRef<{
     id: number;
     x: number;
     y: number;
+    startX: number;
+    startY: number;
   } | null>(null);
   const { panBy, fitToViewport, zoomByAtPoint } = useCanvasActions();
 
@@ -144,7 +155,12 @@ export function CanvasViewport({ children }: PropsWithChildren) {
 
   const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
     const target = event.target;
-    if (!(target instanceof Element) || !target.closest("[data-pan-image]")) {
+    if (
+      event.button !== 0 ||
+      !event.isPrimary ||
+      !(target instanceof Element) ||
+      !target.closest("[data-pan-image]")
+    ) {
       return;
     }
 
@@ -154,6 +170,8 @@ export function CanvasViewport({ children }: PropsWithChildren) {
       id: event.pointerId,
       x: event.clientX,
       y: event.clientY,
+      startX: event.clientX,
+      startY: event.clientY,
     };
   };
 
@@ -174,7 +192,34 @@ export function CanvasViewport({ children }: PropsWithChildren) {
     };
   };
 
-  const finishPan = (event: PointerEvent<HTMLDivElement>) => {
+  const handlePointerUp = (event: PointerEvent<HTMLDivElement>) => {
+    const pointer = activePointer.current;
+    if (pointer?.id !== event.pointerId) {
+      return;
+    }
+    activePointer.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+
+    const movement = Math.hypot(
+      event.clientX - pointer.startX,
+      event.clientY - pointer.startY
+    );
+    if (movement >= POINTER_DRAG_THRESHOLD) {
+      return;
+    }
+
+    const bounds = canvasRef.current?.getBoundingClientRect();
+    if (bounds) {
+      onImageClick?.({
+        x: event.clientX - bounds.left,
+        y: event.clientY - bounds.top,
+      });
+    }
+  };
+
+  const handlePointerCancel = (event: PointerEvent<HTMLDivElement>) => {
     if (activePointer.current?.id !== event.pointerId) {
       return;
     }
@@ -217,8 +262,8 @@ export function CanvasViewport({ children }: PropsWithChildren) {
       aria-label="Image canvas"
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
-      onPointerUp={finishPan}
-      onPointerCancel={finishPan}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerCancel}
     >
       <CanvasSurface getCanvasCenter={getCanvasCenter}>
         {children}

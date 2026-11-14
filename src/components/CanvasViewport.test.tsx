@@ -5,7 +5,7 @@ import {
   render,
   screen,
 } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { CanvasProvider } from "./CanvasProvider";
 import { CanvasViewport } from "./CanvasViewport";
 
@@ -97,5 +97,112 @@ describe("CanvasViewport wheel zoom", () => {
     expect(
       screen.queryByRole("button", { name: "Zoom in" })
     ).not.toBeInTheDocument();
+  });
+});
+
+describe("CanvasViewport image clicks", () => {
+  afterEach(cleanup);
+
+  function setCanvasBounds(canvas: HTMLElement) {
+    Object.defineProperty(canvas, "getBoundingClientRect", {
+      value: () => new DOMRect(20, 30, 800, 600),
+    });
+    Object.defineProperty(canvas, "setPointerCapture", { value: vi.fn() });
+    Object.defineProperty(canvas, "hasPointerCapture", {
+      value: () => true,
+    });
+    Object.defineProperty(canvas, "releasePointerCapture", { value: vi.fn() });
+    fireEvent(window, new Event("resize"));
+  }
+
+  it("reports a click below the drag threshold in canvas-relative coordinates", () => {
+    const onImageClick = vi.fn();
+    render(
+      <CanvasProvider>
+        <CanvasViewport onImageClick={onImageClick} />
+      </CanvasProvider>
+    );
+    const canvas = screen.getByRole("region", { name: "Image canvas" });
+    setCanvasBounds(canvas);
+    const image = screen.getByRole("img", { name: "Mountain landscape" });
+
+    fireEvent.pointerDown(image, {
+      pointerId: 1,
+      isPrimary: true,
+      button: 0,
+      clientX: 400,
+      clientY: 300,
+    });
+    fireEvent.pointerUp(image, {
+      pointerId: 1,
+      clientX: 402,
+      clientY: 301,
+    });
+
+    expect(onImageClick).toHaveBeenCalledWith({ x: 382, y: 271 });
+  });
+
+  it("pans without reporting an image click after a drag", () => {
+    const onImageClick = vi.fn();
+    const { container } = render(
+      <CanvasProvider>
+        <CanvasViewport onImageClick={onImageClick} />
+      </CanvasProvider>
+    );
+    const canvas = screen.getByRole("region", { name: "Image canvas" });
+    setCanvasBounds(canvas);
+    const image = screen.getByRole("img", { name: "Mountain landscape" });
+    const initialTransform = container
+      .querySelector(".canvas-image")
+      ?.getAttribute("style");
+
+    fireEvent.pointerDown(image, {
+      pointerId: 2,
+      isPrimary: true,
+      button: 0,
+      clientX: 400,
+      clientY: 300,
+    });
+    fireEvent.pointerMove(image, {
+      pointerId: 2,
+      clientX: 405,
+      clientY: 300,
+    });
+    fireEvent.pointerUp(image, {
+      pointerId: 2,
+      clientX: 405,
+      clientY: 300,
+    });
+
+    expect(onImageClick).not.toHaveBeenCalled();
+    expect(
+      container.querySelector(".canvas-image")?.getAttribute("style")
+    ).not.toBe(initialTransform);
+  });
+
+  it("does not report a click that starts outside the image bounds", () => {
+    const onImageClick = vi.fn();
+    render(
+      <CanvasProvider>
+        <CanvasViewport onImageClick={onImageClick} />
+      </CanvasProvider>
+    );
+    const canvas = screen.getByRole("region", { name: "Image canvas" });
+    setCanvasBounds(canvas);
+
+    fireEvent.pointerDown(canvas, {
+      pointerId: 3,
+      isPrimary: true,
+      button: 0,
+      clientX: 40,
+      clientY: 50,
+    });
+    fireEvent.pointerUp(canvas, {
+      pointerId: 3,
+      clientX: 40,
+      clientY: 50,
+    });
+
+    expect(onImageClick).not.toHaveBeenCalled();
   });
 });
